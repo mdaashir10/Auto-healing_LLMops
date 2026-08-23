@@ -6,6 +6,7 @@ app = FastAPI()
 # Toggle this to simulate failure modes on demand later
 FAILURE_MODE = {"enabled": False, "type": "none"}
 
+
 @app.get("/health")
 def health():
     if FAILURE_MODE["enabled"]:
@@ -14,6 +15,7 @@ def health():
         elif FAILURE_MODE["type"] == "slow":
             time.sleep(3)
     return {"status": "ok", "timestamp": time.time()}
+
 
 @app.post("/simulate/{failure_type}")
 def simulate(failure_type: str):
