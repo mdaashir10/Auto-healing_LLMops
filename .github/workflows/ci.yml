@@ -26,7 +26,7 @@ jobs:
       - name: Build image
         run: docker build -t auto-healing-mock:ci -f app/Dockerfile app/
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@<full-commit-sha-for-v0.24.0>
+        uses: aquasecurity/trivy-action@<full-commit-sha-for-v0.36.0>
         with:
           image-ref: 'auto-healing-mock:ci'
           format: 'table'
