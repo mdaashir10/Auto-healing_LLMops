@@ -31,3 +31,10 @@ CVE-2025-47273
 # fastapi==0.128.0 pin. Revisit when FastAPI bumps its starlette dependency.
 CVE-2026-48818
 CVE-2026-54283
+
+# No fixed version available from Debian security team yet
+CVE-2025-7458
+CVE-2026-13221
+
+# zlib - Debian officially will_not_fix, not exploitable in their build config
+CVE-2023-45853
