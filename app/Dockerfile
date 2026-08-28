@@ -2,6 +2,8 @@ FROM python:3.14-slim-bookworm
 
 RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 
+RUN pip install --no-cache-dir --upgrade pip setuptools
+
 WORKDIR /code
 
 COPY requirements.txt .
