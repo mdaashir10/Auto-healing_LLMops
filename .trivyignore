@@ -15,3 +15,14 @@ CVE-2026-48962
 CVE-2026-57432
 CVE-2026-57433
 CVE-2026-9538
+
+# msgpack CVE is in pip's internally vendored copy (pip/_vendor/msgpack), not
+# our actual dependency (msgpack==1.2.1, confirmed patched). Not reachable
+# through application code. Tracking: will clear when pip bundles a newer msgpack.
+GHSA-6v7p-g79w-8964
+
+# setuptools CVE is from pip's internal vendor.txt/bom.cdx.json manifest
+# referencing 70.3.0, not an actual installed package (real version is
+# setuptools==84.0.0, confirmed via pip list). False positive from Trivy
+# reading pip's own SBOM metadata.
+CVE-2025-47273
