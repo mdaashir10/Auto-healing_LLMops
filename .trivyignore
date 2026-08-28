@@ -26,3 +26,8 @@ GHSA-6v7p-g79w-8964
 # setuptools==84.0.0, confirmed via pip list). False positive from Trivy
 # reading pip's own SBOM metadata.
 CVE-2025-47273
+
+# starlette DoS/SSRF CVEs - no compatible starlette 1.x release yet for our
+# fastapi==0.128.0 pin. Revisit when FastAPI bumps its starlette dependency.
+CVE-2026-48818
+CVE-2026-54283
