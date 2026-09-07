@@ -38,3 +38,14 @@ CVE-2026-13221
 
 # zlib - Debian officially will_not_fix, not exploitable in their build config
 CVE-2023-45853
+
+# util-linux family - fixed in Debian sid, not yet backported to bookworm 12.
+# No stable-branch fix available as of this scan.
+CVE-2026-76642
+CVE-2026-78408
+CVE-2026-78409
+CVE-2026-78410
+
+# systemd/libsystemd0 - Debian status: fix_deferred (acknowledged, backport
+# pending). No bookworm-stable fix available yet.
+CVE-2026-16742
