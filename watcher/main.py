@@ -1,6 +1,6 @@
 import time
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from collections import deque
 
 import requests
@@ -63,7 +63,7 @@ def get_error_rate():
 
 
 def prune_old_events(dq, window_minutes):
-    cutoff = datetime.utcnow() - timedelta(minutes=window_minutes)
+    cutoff = datetime.now(UTC) - timedelta(minutes=window_minutes)
     while dq and dq[0] < cutoff:
         dq.popleft()
 
@@ -93,8 +93,8 @@ def trigger_quarantine(reason):
 
     log.warning(f"TRIGGER: {reason}. Quarantining {TARGET_DEPLOYMENT} for {COOLDOWN_SECONDS}s.")
     scale_deployment(0)
-    recovery_events.append(datetime.utcnow())
-    quarantined_until = datetime.utcnow() + timedelta(seconds=COOLDOWN_SECONDS)
+    recovery_events.append(datetime.now(UTC))
+    quarantined_until = datetime.now(UTC) + timedelta(seconds=COOLDOWN_SECONDS)
 
 
 def main_loop():
@@ -108,7 +108,7 @@ def main_loop():
             continue
 
         if quarantined_until:
-            if datetime.utcnow() >= quarantined_until:
+            if datetime.now(UTC) >= quarantined_until:
                 log.info("Cooldown complete. Recovering.")
                 scale_deployment(1)
                 quarantined_until = None
@@ -119,7 +119,7 @@ def main_loop():
         restart_count = get_pod_restart_count()
         if restart_count is not None:
             if last_known_restart_count is not None and restart_count > last_known_restart_count:
-                restart_events.append(datetime.utcnow())
+                restart_events.append(datetime.now(UTC))
                 log.info(f"Observed restart count increase: {last_known_restart_count} -> {restart_count}")
             last_known_restart_count = restart_count
 
