@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: watcher
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: watcher
+  template:
+    metadata:
+      labels:
+        app: watcher
+    spec:
+      serviceAccountName: watcher-sa
+      containers:
+        - name: watcher
+          image: auto-healing-watcher:v1
+          imagePullPolicy: Never
+          resources:
+            requests:
+              memory: "32Mi"
+            limits:
+              memory: "64Mi"
