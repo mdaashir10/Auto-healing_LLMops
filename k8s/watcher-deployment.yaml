@@ -15,10 +15,10 @@ spec:
       serviceAccountName: watcher-sa
       containers:
         - name: watcher
-          image: auto-healing-watcher:v1
+          image: auto-healing-watcher:v2
           imagePullPolicy: Never
           resources:
             requests:
-              memory: "32Mi"
-            limits:
               memory: "64Mi"
+            limits:
+              memory: "128Mi"
