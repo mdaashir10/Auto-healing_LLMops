@@ -1,4 +1,4 @@
-FROM python:3.14-slim-bookworm as builder
+FROM python:3.14-slim-bookworm AS builder
 WORKDIR /code
 COPY requirements.txt .
 RUN pip install --user --no-cache-dir --upgrade pip setuptools
