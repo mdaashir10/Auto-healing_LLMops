@@ -1,11 +1,17 @@
 from fastapi import FastAPI, Response, Request
+from pydantic import BaseModel
 from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
 import time
+import httpx
 
 app = FastAPI()
 
 # Toggle this to simulate FAILURE manully
 FAILURE_MODE = {"enabled": False, "type": "none"}
+
+OLLAMA_URL = "http://ollama-service:11434"
+OLLAMA_MODEL = "smollm2:135m"
+OLLAMA_TIMEOUT_SECONDS = 30.0
 
 REQUEST_COUNT = Counter(
     "app_requests_total",
@@ -21,6 +27,14 @@ FAILURE_STATE = Gauge(
     "app_failure_mode_active",
     "Whether failure simulation is currently active (1) or not (0)"
 )
+INFERENCE_LATENCY = Histogram(
+    "app_inference_latency_seconds",
+    "Time spent waiting on Ollama inference calls"
+)
+
+
+class GenerateRequest(BaseModel):
+    prompt: str
 
 
 # Mechanism for running code around every request
@@ -55,6 +69,39 @@ def simulate(failure_type: str):
     FAILURE_MODE["type"] = failure_type
     FAILURE_STATE.set(1 if FAILURE_MODE["enabled"] else 0)
     return {"simulating": failure_type}
+
+
+@app.post("/generate")
+async def generate(req: GenerateRequest):
+    start_time = time.time()
+    try:
+        async with httpx.AsyncClient(timeout=OLLAMA_TIMEOUT_SECONDS) as client:
+            resp = await client.post(
+                f"{OLLAMA_URL}/api/generate",
+                json={
+                    "model": OLLAMA_MODEL,
+                    "prompt": req.prompt,
+                    "stream": False
+                }
+            )
+            resp.raise_for_status()
+            result = resp.json()
+    except httpx.TimeoutException:
+        return Response(
+            content='{"error": "Ollama request timed out"}',
+            status_code=504,
+            media_type="application/json"
+        )
+    except httpx.HTTPError as e:
+        return Response(
+            content=f'{{"error": "Ollama request failed: {str(e)}"}}',
+            status_code=502,
+            media_type="application/json"
+        )
+    finally:
+        INFERENCE_LATENCY.observe(time.time() - start_time)
+
+    return {"response": result.get("response", ""), "model": OLLAMA_MODEL}
 
 
 # It serializes all registered metrics into Prometheus's plaintext format
