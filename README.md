@@ -148,6 +148,72 @@ new components.
 ### Verification
 Every claim above was independently verified against Kubernetes' own event 
 log (`kubectl describe deployment ... | grep Events`), not just the 
-watcher's self-reported logs — confirming real `ScalingReplicaSet` events at 
+watcher's self-reported logs - confirming real `ScalingReplicaSet` events at 
 the expected timestamps for trigger, quarantine, and recovery, for both 
 detection paths (restart-count and error-rate) and the escalation cap.
+
+## Stage 6: Real LLM Inference (Ollama)
+
+Replaces the mock FastAPI responses with genuine LLM inference, served locally 
+via Ollama - no cloud API, consistent with the project's fully-local constraint.
+
+### Architecture decision: in-cluster, not host-level
+Evaluated running Ollama as a bare host process (lower overhead) vs. a pod 
+inside k3s (architectural consistency). Chose in-cluster - everything in this 
+project runs inside Kubernetes, no exceptions, and it keeps the same 
+`docker save` -> `k3s ctr images import` -> manifest workflow used throughout.
+
+### Model selection: measured, not assumed
+Initial estimate for a 135M-parameter model was ~250-400MB RAM. Measured 
+reality (via `docker stats` and `kubectl top pod`) landed closer, but the more 
+important finding came from comparing two same-size candidates head to head:
+
+- **`smollm:135m`** (quantized, 92MB file): repeatedly fell into infinite 
+  repetition loops ("I love you" repeated 100+ times, requiring manual kill) 
+  across multiple independent test runs - both via `ollama run` and the raw 
+  API.
+- **`smollm2:135m`** (271MB file, same parameter count): every test run 
+  completed cleanly and terminated properly, though output quality is 
+  noticeably rough for a model this small (expected, and not the point of 
+  this project).
+
+Same parameter count, different training data/methodology (per SmolLM2's own 
+published paper, later-generation Smol models specifically targeted 
+instruction-tuning data quality) - a real, evidence-backed reason to prefer 
+one over the other, not a coin flip.
+
+### Idle vs active memory - a real resource finding worth relying on
+Ollama's default `OLLAMA_KEEP_ALIVE` unloads a model from memory after 5 
+minutes of inactivity. Measured idle footprint: ~50Mi. Measured active 
+footprint during inference: ~390-430Mi. This matters directly for a 
+RAM-constrained deployment - the cost is only paid while actually serving 
+requests, not as a permanent baseline tax. First request after an idle 
+period pays a "cold" reload cost (~10-17s); subsequent requests within the 
+keep-alive window are faster (~4-5s), backed by Ollama's own prompt-caching.
+
+### Networking gotcha: IPv6 route failure
+The initial `ollama/ollama:latest` image pull (3.7GB, much larger than any 
+other image in this project) silently stalled for 13+ minutes before finally 
+failing. Root cause, found via `journalctl -u k3s`: the host has a live IPv6 
+address assigned but no working IPv6 route upstream - a common ISP/router 
+misconfiguration. Fixed by adding an IPv4-preference rule to `/etc/gai.conf` 
+(`precedence ::ffff:0:0/96 100`), which doesn't disable IPv6 but tells the 
+system to prefer IPv4 when both are technically available.
+
+### Endpoint design: additive, not a replacement of `/health`
+LLM inference is exposed via a new `POST /generate` endpoint, calling 
+Ollama's API over `httpx` (async, so a slow inference call can't block the 
+probe-facing `/health` endpoint). `/health` and `/simulate/{type}` are 
+completely untouched - deliberately, so the Stage 3/5 healing demo and the 
+Stage 6 inference demo can be shown independently or together, on their own 
+terms. Re-verified after this integration: triggering `/simulate/500` still 
+produces the identical detect -> quarantine -> cooldown -> recover cycle proven 
+in Stage 5, confirming the two systems are genuinely decoupled, not just 
+assumed to be.
+
+### Persistence
+Model weights are stored on a PVC mounted at `/root/.ollama` 
+(`k8s/ollama-pvc.yaml`), backed by k3s's `local-path-provisioner` - same 
+pattern as Grafana's dashboard persistence fix in Stage 4. Verified directly: 
+deleted and recreated the Ollama pod, confirmed the model was still present 
+with no re-pull required.
