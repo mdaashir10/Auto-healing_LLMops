@@ -10,9 +10,37 @@ focus is the surrounding DevOps/observability/self-healing tooling.
 
 ## Architecture
 
-FastAPI mock inference service -> Docker -> k3s (single-node) -> 
-Prometheus + Grafana -> custom healing/escalation layer (Stage 5) -> 
-real Ollama-served model (Stage 6)
+See [docs/DEMO.md](docs/DEMO.md) for a full live walkthrough.
+
+```mermaid
+flowchart TB
+    User[User / kubectl / curl]
+
+    subgraph K3s["k3s cluster (single node, t410)"]
+        subgraph AppLayer["Application"]
+            MockAPI["mock-api<br/>FastAPI: /health /simulate /generate /metrics"]
+            Ollama["ollama<br/>smollm2:135m<br/>PVC-backed"]
+        end
+
+        subgraph ObsLayer["Observability"]
+            Prom["prometheus<br/>scrapes /metrics every 10s"]
+            Graf["grafana<br/>PVC-backed dashboards"]
+        end
+
+        subgraph HealLayer["Healing"]
+            Watcher["watcher<br/>polls K8s API + Prometheus"]
+        end
+    end
+
+    User -->|"/simulate/500"| MockAPI
+    User -->|"/generate"| MockAPI
+    MockAPI -->|"POST /api/generate"| Ollama
+    MockAPI -->|"/metrics scraped"| Prom
+    Prom --> Graf
+    Watcher -->|"read restart count"| MockAPI
+    Watcher -->|"query error rate"| Prom
+    Watcher -->|"scale 0/1 (RBAC-scoped)"| MockAPI
+```
 
 ## Local Environment Setup
 
@@ -218,4 +246,3 @@ pattern as Grafana's dashboard persistence fix in Stage 4. Verified directly:
 deleted and recreated the Ollama pod, confirmed the model was still present 
 with no re-pull required.
 
-See [docs/DEMO.md](docs/DEMO.md) for a full live walkthrough.
