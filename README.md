@@ -22,7 +22,7 @@ real Ollama-served model (Stage 6)
   (`/etc/rancher/k3s/config.yaml`), since this project uses 
   `kubectl port-forward` exclusively rather than Ingress or a LoadBalancer 
   Service. This is a memory-reclaim step, not a functional requirement.
-- k3s's kubectl requires `export KUBECONFIG=~/.kube/config` explicitly — it 
+- k3s's kubectl requires `export KUBECONFIG=~/.kube/config` explicitly - it 
   does not read the default kubeconfig path automatically. Added to `~/.bashrc`.
 
 **Operational note - graceful shutdown**: stopping k3s directly 
@@ -217,3 +217,5 @@ Model weights are stored on a PVC mounted at `/root/.ollama`
 pattern as Grafana's dashboard persistence fix in Stage 4. Verified directly: 
 deleted and recreated the Ollama pod, confirmed the model was still present 
 with no re-pull required.
+
+See [docs/DEMO.md](docs/DEMO.md) for a full live walkthrough.
