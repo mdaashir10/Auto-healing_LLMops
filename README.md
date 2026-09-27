@@ -1,8 +1,8 @@
 # Auto-healing LLMops
 
 A Kubernetes-native, self-healing deployment pipeline for an LLM inference 
-service, with Prometheus/Grafana observability and a custom healing layer 
-(in progress). Built and tested entirely locally on constrained hardware 
+service, with Prometheus/Grafana observability and a custom healing layer. 
+Built and tested entirely locally on constrained hardware 
 (ThinkPad T410, 1st-gen i5, 4GB RAM, spinning disk) - no cloud dependency.
 
 The LLM inference service is the workload under management; the project's 
